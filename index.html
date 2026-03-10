@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d0d0d">
+<title>Stock Count</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  --bg: #0d0d0d;
+  --card: #1c1c1e;
+  --card2: #2c2c2e;
+  --border: rgba(255,255,255,0.08);
+  --accent: #f5c842;
+  --accent-dim: rgba(245,200,66,0.15);
+  --orange: #ff6b35;
+  --text: #ffffff;
+  --text2: rgba(255,255,255,0.6);
+  --text3: rgba(255,255,255,0.3);
+  --green: #30d158;
+  --green-dim: rgba(48,209,88,0.15);
+  --red: #ff453a;
+  --red-dim: rgba(255,69,58,0.15);
+  --blue: #0a84ff;
+  --blue-dim: rgba(10,132,255,0.15);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --header-h: 110px;
+  --footer-h: 80px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+  padding-bottom: calc(var(--footer-h) + var(--safe-bottom) + 16px);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── HEADER ─────────────────────────────────────────────────── */
+.app-header {
+  background: rgba(13,13,13,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: calc(var(--safe-top) + 14px) 20px 12px;
+  position: sticky; top: 0; z-index: 90;
+}
+
+.header-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.app-title {
+  font-size: 1.35rem; font-weight: 800; letter-spacing: -0.03em;
+  color: var(--text);
+}
+.app-title span { color: var(--accent); }
+
+.date-pill {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem; font-weight: 600;
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.progress-row {
+  display: flex; align-items: center; gap: 10px;
+}
+.progress-track {
+  flex: 1; height: 5px; background: var(--card2); border-radius: 99px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; border-radius: 99px;
+  background: var(--accent);
+  transition: width 0.4s cubic-bezier(.4,0,.2,1);
+}
+.progress-fill.complete { background: var(--green); }
+.progress-text {
+  font-size: 0.72rem; font-weight: 700; color: var(--text2);
+  min-width: 44px; text-align: right;
+}
+
+/* ── CONTENT ─────────────────────────────────────────────────── */
+.content { padding: 8px 0 0; }
+
+/* ── SECTION ─────────────────────────────────────────────────── */
+.section { margin: 0 0 4px; }
+
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 8px;
+  position: sticky;
+  top: calc(var(--safe-top) + var(--header-h) - 20px);
+  z-index: 80;
+  background: var(--bg);
+}
+
+.section-title {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text2);
+  display: flex; align-items: center; gap: 6px;
+}
+.section-emoji { font-size: 0.9rem; }
+
+.add-btn {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--blue-dim);
+  border: 1px solid rgba(10,132,255,0.25);
+  border-radius: 20px;
+  color: var(--blue);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem; font-weight: 600;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.add-btn:active { background: rgba(10,132,255,0.3); }
+
+/* ── CARDS ─────────────────────────────────────────────────── */
+.cards { padding: 0 12px; display: flex; flex-direction: column; gap: 2px; }
+
+.item-card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px 14px 14px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: opacity 0.25s, transform 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.item-card + .item-card { margin-top: 2px; }
+
+.item-card.counted {
+  opacity: 0.45;
+}
+.item-card.counted::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.1);
+  pointer-events: none;
+}
+
+.item-card.custom-item {
+  border-left: 3px solid var(--blue);
+  border-radius: 14px;
+}
+
+/* Check circle */
+.check-circle {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid var(--card2);
+  background: none; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s cubic-bezier(.4,0,.2,1);
+  color: transparent;
+  font-size: 13px; font-weight: 700;
+}
+.check-circle.done {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  box-shadow: 0 0 0 4px var(--green-dim);
+}
+.check-circle:active { transform: scale(0.88); }
+
+/* Item label + badge */
+.item-info { flex: 1; min-width: 0; }
+.item-label {
+  font-size: 0.9rem; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: color 0.2s;
+}
+.item-card.counted .item-label {
+  text-decoration: line-through; color: var(--text3);
+}
+.new-badge {
+  display: inline-block;
+  font-size: 0.55rem; font-weight: 800; letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--blue); color: #fff;
+  border-radius: 4px; padding: 1px 5px;
+  margin-left: 5px; vertical-align: middle;
+}
+
+/* Counters */
+.item-counters {
+  display: flex; flex-direction: column; gap: 5px; align-items: flex-end;
+}
+
+.counter-pill {
+  display: flex; align-items: center; gap: 0;
+  background: var(--card2);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: opacity 0.2s;
+}
+.counter-pill.locked { opacity: 0.25; pointer-events: none; }
+
+.pill-btn {
+  width: 36px; height: 36px;
+  border: none; background: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem; font-weight: 700; line-height: 1;
+  color: var(--text2);
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+.pill-btn:active { background: rgba(255,255,255,0.1); }
+.pill-btn.minus:active { background: var(--red-dim); color: var(--red); }
+.pill-btn.plus:active { background: var(--accent-dim); color: var(--accent); }
+
+.pill-center {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 2px 4px; min-width: 52px;
+}
+
+.pill-input {
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem; font-weight: 700;
+  width: 50px; text-align: center;
+  background: transparent; border: none; outline: none;
+  color: var(--text);
+  padding: 0;
+  line-height: 1.2;
+}
+.pill-input:focus { color: var(--accent); }
+.pill-input:disabled { color: var(--text3); cursor: not-allowed; }
+
+.pill-unit {
+  font-size: 0.58rem; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--text3); margin-top: -1px;
+}
+
+/* Remove button (custom items) */
+.rm-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1.5px solid var(--red);
+  background: none; color: var(--red);
+  font-size: 12px; font-weight: 700;
+  cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  margin-left: 4px;
+}
+.rm-btn:active { background: var(--red); color: #fff; transform: scale(0.9); }
+.rm-btn.confirm {
+  background: var(--red); color: #fff;
+  border-radius: 10px; width: auto; padding: 0 8px;
+  font-size: 0.6rem; letter-spacing: 0.04em;
+}
+
+/* ── FOOTER ─────────────────────────────────────────────────── */
+.app-footer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(13,13,13,0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  padding: 10px 16px calc(10px + var(--safe-bottom));
+  display: flex; gap: 10px; z-index: 90;
+}
+
+.footer-btn {
+  flex: 1; padding: 15px 10px;
+  border: none; border-radius: 14px;
+  font-family: 'Inter', sans-serif; font-weight: 700;
+  font-size: 0.82rem; letter-spacing: 0.01em;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.footer-btn:active { transform: scale(0.97); }
+
+.btn-reset {
+  background: var(--card2); color: var(--text2);
+  flex: 0.6;
+}
+.btn-reset.confirm-state { background: var(--red-dim); color: var(--red); }
+
+.btn-copy {
+  background: var(--accent); color: #000;
+  flex: 1.4;
+}
+.btn-copy:active { background: #ffd44a; }
+
+/* ── TOASTS ─────────────────────────────────────────────────── */
+.toast-wrap {
+  position: fixed; top: calc(var(--safe-top) + 16px); left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  z-index: 400; pointer-events: none;
+  transition: all 0.3s cubic-bezier(.4,0,.2,1);
+  opacity: 0;
+}
+.toast-wrap.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.toast-bubble {
+  padding: 11px 20px; border-radius: 22px;
+  font-size: 0.82rem; font-weight: 700;
+  white-space: nowrap; text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.toast-bubble.success { background: var(--green); color: #fff; }
+.toast-bubble.warning { background: var(--orange); color: #fff; }
+
+/* ── MODAL ─────────────────────────────────────────────────── */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 200;
+  align-items: flex-end; justify-content: center;
+}
+.overlay.open { display: flex; }
+
+.sheet {
+  background: #1c1c1e;
+  border-radius: 22px 22px 0 0;
+  padding: 0 0 calc(20px + var(--safe-bottom));
+  width: 100%; max-width: 520px;
+  max-height: 92vh; overflow-y: auto;
+  animation: sheetUp 0.28s cubic-bezier(.4,0,.2,1);
+}
+@keyframes sheetUp {
+  from { transform: translateY(80px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.sheet-handle {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: var(--card2); margin: 12px auto 0;
+}
+
+.sheet-header {
+  padding: 16px 20px 4px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+}
+.sheet-title { font-size: 1.1rem; font-weight: 800; color: var(--text); }
+.sheet-sub { font-size: 0.76rem; color: var(--text2); margin-top: 3px; }
+.sheet-close {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--card2); border: none; color: var(--text2);
+  font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-left: 10px;
+}
+
+.sheet-body { padding: 16px 20px 0; }
+
+.field { margin-bottom: 16px; }
+.field-label {
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--text2);
+  margin-bottom: 8px; display: block;
+}
+.field-input, .field-select {
+  width: 100%;
+  background: var(--card2); border: 1.5px solid var(--border);
+  border-radius: 12px; color: var(--text);
+  font-family: 'Inter', sans-serif; font-size: 0.95rem; font-weight: 500;
+  padding: 13px 16px; outline: none; transition: border 0.15s;
+  -webkit-appearance: none;
+}
+.field-input:focus, .field-select:focus { border-color: var(--blue); }
+.field-select option { background: #1c1c1e; }
+
+.custom-inp { display: none; margin-top: 8px; }
+.custom-inp.show { display: block; }
+
+.toggle-field {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--card2); border-radius: 12px; padding: 13px 16px;
+  margin-bottom: 10px;
+}
+.toggle-field-text .tl { font-size: 0.88rem; font-weight: 600; color: var(--text); }
+.toggle-field-text .ts { font-size: 0.72rem; color: var(--text2); margin-top: 2px; }
+
+/* iOS-style toggle */
+.ios-toggle { position: relative; width: 51px; height: 31px; flex-shrink: 0; }
+.ios-toggle input { opacity: 0; width: 0; height: 0; }
+.ios-track {
+  position: absolute; inset: 0;
+  background: var(--card); border-radius: 31px;
+  cursor: pointer; transition: background 0.2s;
+  border: 2px solid rgba(255,255,255,0.06);
+}
+.ios-track::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 23px; height: 23px; border-radius: 50%;
+  background: #fff; transition: transform 0.22s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+.ios-toggle input:checked + .ios-track { background: var(--green); }
+.ios-toggle input:checked + .ios-track::after { transform: translateX(20px); }
+
+.unit2-box {
+  background: var(--card2); border-radius: 14px; padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.unit2-toggle-row {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;
+}
+.unit2-fields { display: none; margin-top: 14px; }
+.unit2-fields.show { display: block; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.sheet-actions { display: flex; gap: 10px; margin-top: 6px; padding: 0 20px; }
+.sheet-btn {
+  flex: 1; padding: 15px;
+  border: none; border-radius: 14px;
+  font-family: 'Inter', sans-serif; font-weight: 700;
+  font-size: 0.88rem; cursor: pointer; transition: all 0.15s;
+}
+.sheet-btn:active { transform: scale(0.97); }
+.sheet-cancel { background: var(--card2); color: var(--text2); }
+.sheet-add { background: var(--blue); color: #fff; }
+.sheet-add:active { background: #3a94ff; }
+
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="header-top">
+    <div class="app-title">Stock<span>.</span>Count</div>
+    <input type="date" class="date-pill" id="countDate">
+  </div>
+  <div class="progress-row">
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <span class="progress-text" id="progressText">0 / 0</span>
+  </div>
+</header>
+
+<div class="content" id="app"></div>
+
+<!-- FOOTER -->
+<footer class="app-footer">
+  <button class="footer-btn btn-reset" id="resetBtn" onclick="resetAll()">↺ Reset</button>
+  <button class="footer-btn btn-copy" onclick="copyCount()">📋 Copy Report</button>
+</footer>
+
+<!-- TOASTS -->
+<div class="toast-wrap" id="toastSuccess">
+  <div class="toast-bubble success">✓ Copied to clipboard!</div>
+</div>
+<div class="toast-wrap" id="toastWarn">
+  <div class="toast-bubble warning" id="toastWarnText"></div>
+</div>
+
+<!-- ADD ITEM SHEET -->
+<div class="overlay" id="overlay" onclick="overlayTap(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div>
+        <div class="sheet-title">Add Item</div>
+        <div class="sheet-sub" id="sheetSub">Adding to category</div>
+      </div>
+      <button class="sheet-close" onclick="closeSheet()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="field">
+        <label class="field-label">Item Name</label>
+        <input class="field-input" id="newName" placeholder="e.g. Corn Dogs" autocomplete="off">
+      </div>
+
+      <div class="divider"></div>
+      <div class="field-label" style="margin-bottom:10px">Primary Unit</div>
+
+      <div class="field">
+        <label class="field-label">Unit Type</label>
+        <select class="field-select" id="newUnit1" onchange="u1Change()">
+          <option>Box</option><option>Bag</option><option>Case</option>
+          <option>Container</option><option>kg</option><option>Litre</option>
+          <option>Pack</option><option>Piece</option><option>Tub</option>
+          <option>Bottle</option><option value="custom">✏ Custom…</option>
+        </select>
+        <input class="field-input custom-inp" id="newUnit1Custom" placeholder="Type unit name…">
+      </div>
+
+      <div class="toggle-field">
+        <div class="toggle-field-text">
+          <div class="tl">Decimal steps (0.5)</div>
+          <div class="ts">Allow half units e.g. 2.5 Box</div>
+        </div>
+        <label class="ios-toggle"><input type="checkbox" id="dec1"><span class="ios-track"></span></label>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="unit2-box">
+        <div class="unit2-toggle-row">
+          <div class="toggle-field-text">
+            <div class="tl">Second unit?</div>
+            <div class="ts">e.g. Box + Pack, Case + Bottle</div>
+          </div>
+          <label class="ios-toggle"><input type="checkbox" id="enableU2" onchange="toggleU2()"><span class="ios-track"></span></label>
+        </div>
+        <div class="unit2-fields" id="u2Fields">
+          <div class="two-col" style="margin-top:12px">
+            <div class="field" style="margin-bottom:0">
+              <label class="field-label">Unit Type</label>
+              <select class="field-select" id="newUnit2" onchange="u2Change()">
+                <option>Pack</option><option>kg</option><option>Litre</option>
+                <option>Piece</option><option>Bottle</option><option>Tub</option>
+                <option>Box</option><option>Bag</option><option value="custom">✏ Custom…</option>
+              </select>
+              <input class="field-input custom-inp" id="newUnit2Custom" placeholder="Unit name…" style="margin-top:8px">
+            </div>
+            <div>
+              <label class="field-label">Decimal?</label>
+              <div class="toggle-field" style="margin-bottom:0;padding:10px 12px">
+                <div class="toggle-field-text"><div class="ts">0.5 steps</div></div>
+                <label class="ios-toggle"><input type="checkbox" id="dec2"><span class="ios-track"></span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="sheet-btn sheet-cancel" onclick="closeSheet()">Cancel</button>
+      <button class="sheet-btn sheet-add" onclick="confirmAdd()">Add Item</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const CATS = [
+  { id:'c_chicken', name:'🍗 Chicken', label:'Chicken', items:[
+    { id:'wings',   label:'Wings',      unit1:'Box', unit2:'kg',   decimal1:true },
+    { id:'fillet',  label:'Fillet',     unit1:'Box', unit2:'kg',   decimal1:true },
+    { id:'tender',  label:'Tender (M)', unit1:'Box', unit2:'kg',   decimal1:true },
+    { id:'nuggets', label:'Nuggets',    unit1:'Box', unit2:'kg',   decimal1:true },
+  ]},
+  { id:'c_frozen', name:'🧊 Frozen', label:'Frozen', items:[
+    { id:'fries',      label:'Fries',        unit1:'Box', unit2:'Pack', decimal2:true },
+    { id:'macncheese', label:'Mac & Cheese', unit1:'Box', unit2:'Pack', decimal2:true },
+    { id:'biscuits',   label:'Biscuits',     unit1:'Box', unit2:'Pack', decimal2:true },
+    { id:'hashbrown',  label:'Hashbrown',    unit1:'Box', unit2:'Pack', decimal2:true },
+    { id:'beans',      label:'Beans',        unit1:'Box', unit2:'Pack', decimal2:true },
+  ]},
+  { id:'c_bakery', name:'🥬 Fresh & Bakery', label:'Fresh & Bakery', items:[
+    { id:'lettuce',  label:'Lettuce',        unit1:'Box', unit2:'Pack' },
+    { id:'pickles',  label:'Pickles',        unit1:'Box', unit2:'' },
+    { id:'cheddar',  label:'Cheddar Cheese', unit1:'Box', unit2:'Pack' },
+    { id:'smoked',   label:'Smoked Cheese',  unit1:'Box', unit2:'Pack' },
+    { id:'bun',      label:'Bun',            unit1:'Box', unit2:'Pack' },
+    { id:'tortillas',label:'Tortillas',      unit1:'Box', unit2:'Pack' },
+  ]},
+  { id:'c_drinks', name:'🥤 Soft Drinks', label:'Soft Drinks', items:[
+    { id:'oasis',        label:'Oasis',                unit1:'Case', unit2:'Bottle' },
+    { id:'coke',         label:'Coke Classic',         unit1:'Case', unit2:'Bottle' },
+    { id:'cokezero',     label:'Coke Zero',            unit1:'Case', unit2:'Bottle' },
+    { id:'cokediet',     label:'Coke Diet',            unit1:'Case', unit2:'Bottle' },
+    { id:'drpepper',     label:'Dr Pepper',            unit1:'Case', unit2:'Bottle' },
+    { id:'fanta',        label:'Fanta',                unit1:'Case', unit2:'Bottle' },
+    { id:'sprite',       label:'Sprite',               unit1:'Case', unit2:'Bottle' },
+    { id:'thickshake',   label:'Thick Shake Mix',      unit1:'Box',  unit2:'Pack'   },
+    { id:'redbull_orig', label:'Redbull (Original)',   unit1:'Case', unit2:'Bottle' },
+    { id:'redbull_pink', label:'Redbull (Pink)',        unit1:'Case', unit2:'Bottle' },
+    { id:'redbull_ga',   label:'Redbull Ginger Apple', unit1:'Case', unit2:'Bottle' },
+    { id:'sprite15',     label:'Sprite 1.5L',          unit1:'Case', unit2:'Bottle' },
+    { id:'fanta15',      label:'Fanta 1.5L',           unit1:'Case', unit2:'Bottle' },
+    { id:'coke15',       label:'Coke Classic 1.5L',    unit1:'Case', unit2:'Bottle' },
+  ]},
+  { id:'c_dessert', name:'🍦 Dessert', label:'Dessert', items:[
+    { id:'choc_l',   label:'Choc Fudge [L]',    unit1:'Case', unit2:'Tub' },
+    { id:'choc_s',   label:'Choc Fudge [S]',    unit1:'Case', unit2:'Tub' },
+    { id:'cookie_l', label:'Cookie Dough [L]',  unit1:'Case', unit2:'Tub' },
+    { id:'cookie_s', label:'Cookie Dough [S]',  unit1:'Case', unit2:'Tub' },
+  ]},
+  { id:'c_dry', name:'🧴 Dry Produce', label:'Dry Produce', items:[
+    { id:'poultry_flour',  label:'Poultry Flour',     unit1:'Bag',       unit2:'kg' },
+    { id:'bm_flour',       label:'BM Flour',          unit1:'Bag',       unit2:'kg' },
+    { id:'oil',            label:'Oil',               unit1:'Container', unit2:'Litres' },
+    { id:'poultry_batter', label:'Poultry Batter',    unit1:'Box',       unit2:'Pack' },
+    { id:'buttermilk',     label:'Buttermilk Batter', unit1:'Box',       unit2:'Pack' },
+  ]},
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+const ST = {};
+let resetPending = false;
+
+function initST(item) {
+  if (!ST[item.id]) ST[item.id] = { v1:0, v2:0, done:false };
+}
+CATS.forEach(c => c.items.forEach(initST));
+
+document.getElementById('countDate').value = new Date().toISOString().split('T')[0];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function allItems() { return CATS.flatMap(c => c.items); }
+function findItem(id) { return allItems().find(i => i.id === id); }
+function findCat(id) { return CATS.find(c => c.id === id); }
+function catOfItem(itemId) { return CATS.find(c => c.items.some(i => i.id === itemId)); }
+
+function fmt(val, dec) {
+  const n = parseFloat(val) || 0;
+  if (!dec) return String(Math.round(n));
+  const r = Math.round(n * 10) / 10;
+  return Number.isInteger(r) ? r + '.0' : String(r);
+}
+function parse(raw, dec) {
+  const n = parseFloat(raw);
+  if (isNaN(n) || n < 0) return 0;
+  return dec ? Math.round(n * 10) / 10 : Math.round(n);
+}
+
+// ── PROGRESS ──────────────────────────────────────────────────────────────────
+function updateProgress() {
+  const keys = Object.keys(ST);
+  const done = keys.filter(k => ST[k].done).length;
+  const pct = keys.length ? (done / keys.length * 100) : 0;
+  const fill = document.getElementById('progressFill');
+  fill.style.width = pct + '%';
+  fill.className = 'progress-fill' + (pct === 100 ? ' complete' : '');
+  document.getElementById('progressText').textContent = `${done} / ${keys.length}`;
+}
+
+// ── TOGGLE DONE ───────────────────────────────────────────────────────────────
+function toggleDone(id) {
+  ST[id].done = !ST[id].done;
+  const card = document.getElementById(`card-${id}`);
+  const chk  = document.getElementById(`chk-${id}`);
+  card.classList.toggle('counted', ST[id].done);
+  chk.classList.toggle('done', ST[id].done);
+  chk.textContent = ST[id].done ? '✓' : '';
+  // Lock/unlock pills
+  card.querySelectorAll('.counter-pill').forEach(p => p.classList.toggle('locked', ST[id].done));
+  card.querySelectorAll('.pill-input').forEach(inp => { inp.disabled = ST[id].done; });
+  card.querySelectorAll('.pill-btn').forEach(btn => { btn.disabled = ST[id].done; });
+  updateProgress();
+}
+
+// ── COUNTER CHANGE ────────────────────────────────────────────────────────────
+function step(id, key, delta) {
+  const item = findItem(id);
+  const dec = key === 'v1' ? !!item.decimal1 : !!item.decimal2;
+  ST[id][key] = Math.round(Math.max(0, ST[id][key] + delta) * 10) / 10;
+  const inp = document.getElementById(`inp-${id}-${key}`);
+  if (inp) inp.value = fmt(ST[id][key], dec);
+}
+
+function onType(id, key) {
+  const item = findItem(id);
+  const dec = key === 'v1' ? !!item.decimal1 : !!item.decimal2;
+  const inp = document.getElementById(`inp-${id}-${key}`);
+  ST[id][key] = parse(inp.value, dec);
+}
+
+function onBlur(id, key) {
+  const item = findItem(id);
+  const dec = key === 'v1' ? !!item.decimal1 : !!item.decimal2;
+  const inp = document.getElementById(`inp-${id}-${key}`);
+  inp.value = fmt(ST[id][key], dec);
+}
+
+// ── RESET ─────────────────────────────────────────────────────────────────────
+function resetAll() {
+  const btn = document.getElementById('resetBtn');
+  if (!resetPending) {
+    resetPending = true;
+    btn.textContent = '✓ Sure?';
+    btn.classList.add('confirm-state');
+    setTimeout(() => {
+      if (resetPending) {
+        resetPending = false;
+        btn.textContent = '↺ Reset';
+        btn.classList.remove('confirm-state');
+      }
+    }, 3000);
+    return;
+  }
+  resetPending = false;
+  btn.textContent = '↺ Reset';
+  btn.classList.remove('confirm-state');
+
+  Object.keys(ST).forEach(k => {
+    ST[k] = { v1:0, v2:0, done:false };
+    const item = findItem(k);
+    const card = document.getElementById(`card-${k}`);
+    if (!card) return;
+    card.classList.remove('counted');
+    const chk = document.getElementById(`chk-${k}`);
+    if (chk) { chk.classList.remove('done'); chk.textContent = ''; }
+    ['v1','v2'].forEach(key => {
+      const inp = document.getElementById(`inp-${k}-${key}`);
+      if (!inp) return;
+      const dec = key === 'v1' ? !!item?.decimal1 : !!item?.decimal2;
+      inp.value = dec ? '0.0' : '0';
+      inp.disabled = false;
+    });
+    card.querySelectorAll('.counter-pill').forEach(p => p.classList.remove('locked'));
+    card.querySelectorAll('.pill-btn').forEach(b => b.disabled = false);
+  });
+  updateProgress();
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(type, msg) {
+  if (type === 'success') {
+    const t = document.getElementById('toastSuccess');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  } else {
+    document.getElementById('toastWarnText').textContent = msg;
+    const t = document.getElementById('toastWarn');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2600);
+  }
+}
+
+// ── COPY ─────────────────────────────────────────────────────────────────────
+function copyCount() {
+  const undone = Object.keys(ST).filter(k => !ST[k].done);
+  if (undone.length) { showToast('warn', `⚠ ${undone.length} item(s) not counted yet!`); return; }
+  const [y,m,d] = document.getElementById('countDate').value.split('-');
+  let lines = [`Daily Closing Count`, `Date: ${d}/${m}/${String(y).slice(2)}`, ''];
+  CATS.forEach(cat => {
+    lines.push(cat.label);
+    cat.items.forEach(item => {
+      const s = ST[item.id];
+      const v1 = fmt(s.v1, item.decimal1);
+      const v2 = fmt(s.v2, item.decimal2);
+      lines.push(item.unit2
+        ? `${item.label}- ${v1}${item.unit1} + ${v2}${item.unit2}`
+        : `${item.label}- ${v1}${item.unit1}`);
+    });
+    lines.push('');
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('success'));
+}
+
+// ── REMOVE ────────────────────────────────────────────────────────────────────
+function removeItem(itemId) {
+  const cat = catOfItem(itemId);
+  if (!cat) return;
+  const card = document.getElementById(`card-${itemId}`);
+  const btn = card ? card.querySelector('.rm-btn') : null;
+
+  if (!card || card.dataset.rmPending !== '1') {
+    if (card) card.dataset.rmPending = '1';
+    if (btn) {
+      btn.textContent = 'Sure?';
+      btn.classList.add('confirm');
+    }
+    setTimeout(() => {
+      if (card && card.dataset.rmPending === '1') {
+        card.dataset.rmPending = '0';
+        if (btn) { btn.textContent = '✕'; btn.classList.remove('confirm'); }
+      }
+    }, 3000);
+    return;
+  }
+
+  cat.items = cat.items.filter(i => i.id !== itemId);
+  delete ST[itemId];
+  const existing = document.getElementById(cat.id);
+  if (existing) existing.replaceWith(buildSection(cat));
+  updateProgress();
+}
+
+// ── SHEET ─────────────────────────────────────────────────────────────────────
+let sheetCatId = null;
+
+function openSheet(catId) {
+  sheetCatId = catId;
+  const cat = findCat(catId);
+  document.getElementById('sheetSub').textContent = 'Adding to ' + cat.label;
+  document.getElementById('newName').value = '';
+  document.getElementById('newUnit1').value = 'Box';
+  document.getElementById('newUnit1Custom').value = '';
+  document.getElementById('newUnit1Custom').classList.remove('show');
+  document.getElementById('dec1').checked = false;
+  document.getElementById('enableU2').checked = false;
+  document.getElementById('u2Fields').classList.remove('show');
+  document.getElementById('newUnit2').value = 'Pack';
+  document.getElementById('newUnit2Custom').value = '';
+  document.getElementById('newUnit2Custom').classList.remove('show');
+  document.getElementById('dec2').checked = false;
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(() => document.getElementById('newName').focus(), 320);
+}
+function closeSheet() { document.getElementById('overlay').classList.remove('open'); }
+function overlayTap(e) { if (e.target === document.getElementById('overlay')) closeSheet(); }
+function u1Change() {
+  document.getElementById('newUnit1Custom').classList.toggle('show', document.getElementById('newUnit1').value === 'custom');
+}
+function u2Change() {
+  document.getElementById('newUnit2Custom').classList.toggle('show', document.getElementById('newUnit2').value === 'custom');
+}
+function toggleU2() {
+  document.getElementById('u2Fields').classList.toggle('show', document.getElementById('enableU2').checked);
+}
+function resolveUnit(selId, custId) {
+  const v = document.getElementById(selId).value;
+  return v === 'custom' ? (document.getElementById(custId).value.trim() || 'unit') : v;
+}
+function confirmAdd() {
+  const label = document.getElementById('newName').value.trim();
+  if (!label) { showToast('warn', '⚠ Enter an item name first'); return; }
+  const unit1 = resolveUnit('newUnit1','newUnit1Custom');
+  const dec1  = document.getElementById('dec1').checked;
+  const hasU2 = document.getElementById('enableU2').checked;
+  const unit2 = hasU2 ? resolveUnit('newUnit2','newUnit2Custom') : '';
+  const dec2  = hasU2 && document.getElementById('dec2').checked;
+  const id    = 'cx_' + Date.now();
+  const item  = { id, label, unit1, unit2, decimal1:dec1, decimal2:dec2, custom:true };
+  const cat   = findCat(sheetCatId);
+  if (!cat) return;
+  cat.items.push(item);
+  initST(item);
+  closeSheet();
+  const existing = document.getElementById(cat.id);
+  if (existing) existing.replaceWith(buildSection(cat));
+  updateProgress();
+  setTimeout(() => {
+    const el = document.getElementById(`card-${id}`);
+    if (el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+  }, 100);
+}
+
+// ── BUILD PILL ────────────────────────────────────────────────────────────────
+function buildPill(item, key) {
+  const s = ST[item.id];
+  const dec = key === 'v1' ? !!item.decimal1 : !!item.decimal2;
+  const unit = key === 'v1' ? item.unit1 : item.unit2;
+  const stepVal = dec ? 0.5 : 1;
+  const locked = s.done;
+
+  const pill = document.createElement('div');
+  pill.className = 'counter-pill' + (locked ? ' locked' : '');
+
+  const minus = document.createElement('button');
+  minus.className = 'pill-btn minus';
+  minus.textContent = '−';
+  minus.disabled = locked;
+  minus.addEventListener('click', () => step(item.id, key, -stepVal));
+
+  const center = document.createElement('div');
+  center.className = 'pill-center';
+
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.inputMode = dec ? 'decimal' : 'numeric';
+  inp.className = 'pill-input';
+  inp.id = `inp-${item.id}-${key}`;
+  inp.value = fmt(s[key], dec);
+  inp.disabled = locked;
+  inp.autocomplete = 'off';
+  inp.addEventListener('input', () => onType(item.id, key));
+  inp.addEventListener('blur',  () => onBlur(item.id, key));
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+  inp.addEventListener('focus', () => inp.select());
+
+  const unitLbl = document.createElement('div');
+  unitLbl.className = 'pill-unit';
+  unitLbl.textContent = unit;
+
+  center.appendChild(inp);
+  center.appendChild(unitLbl);
+
+  const plus = document.createElement('button');
+  plus.className = 'pill-btn plus';
+  plus.textContent = '+';
+  plus.disabled = locked;
+  plus.addEventListener('click', () => step(item.id, key, stepVal));
+
+  pill.appendChild(minus);
+  pill.appendChild(center);
+  pill.appendChild(plus);
+  return pill;
+}
+
+// ── BUILD CARD ────────────────────────────────────────────────────────────────
+function buildCard(item) {
+  const s = ST[item.id];
+
+  const card = document.createElement('div');
+  card.className = 'item-card' + (item.custom ? ' custom-item' : '') + (s.done ? ' counted' : '');
+  card.id = `card-${item.id}`;
+
+  // Check circle
+  const chk = document.createElement('button');
+  chk.className = 'check-circle' + (s.done ? ' done' : '');
+  chk.id = `chk-${item.id}`;
+  chk.textContent = s.done ? '✓' : '';
+  chk.addEventListener('click', () => toggleDone(item.id));
+  card.appendChild(chk);
+
+  // Info
+  const info = document.createElement('div');
+  info.className = 'item-info';
+  const lbl = document.createElement('div');
+  lbl.className = 'item-label';
+  lbl.textContent = item.label;
+  if (item.custom) {
+    const badge = document.createElement('span');
+    badge.className = 'new-badge';
+    badge.textContent = 'NEW';
+    lbl.appendChild(badge);
+  }
+  info.appendChild(lbl);
+  card.appendChild(info);
+
+  // Counters
+  const counters = document.createElement('div');
+  counters.className = 'item-counters';
+  counters.appendChild(buildPill(item, 'v1'));
+  if (item.unit2) counters.appendChild(buildPill(item, 'v2'));
+  card.appendChild(counters);
+
+  // Remove button for custom items
+  if (item.custom) {
+    const rm = document.createElement('button');
+    rm.className = 'rm-btn';
+    rm.textContent = '✕';
+    rm.addEventListener('click', () => removeItem(item.id));
+    card.appendChild(rm);
+  }
+
+  return card;
+}
+
+// ── BUILD SECTION ─────────────────────────────────────────────────────────────
+function buildSection(cat) {
+  const sec = document.createElement('div');
+  sec.className = 'section';
+  sec.id = cat.id;
+
+  const hdr = document.createElement('div');
+  hdr.className = 'section-header';
+
+  const titleWrap = document.createElement('div');
+  titleWrap.className = 'section-title';
+  titleWrap.textContent = cat.name;
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-btn';
+  addBtn.textContent = '＋ Add';
+  addBtn.addEventListener('click', () => openSheet(cat.id));
+
+  hdr.appendChild(titleWrap);
+  hdr.appendChild(addBtn);
+  sec.appendChild(hdr);
+
+  const cards = document.createElement('div');
+  cards.className = 'cards';
+  cat.items.forEach(item => cards.appendChild(buildCard(item)));
+  sec.appendChild(cards);
+
+  return sec;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  CATS.forEach(cat => app.appendChild(buildSection(cat)));
+  updateProgress();
+}
+
+render();
+</script>
+</body>
+</html>
