@@ -44,7 +44,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 html, body {
-  height: 100%;
+  min-height: 100%;
   overscroll-behavior: none;
 }
 
@@ -53,18 +53,19 @@ body {
   color: var(--text);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   min-height: 100vh;
-  padding-bottom: calc(var(--footer-h) + var(--safe-bottom) + 16px);
+  padding-top: calc(var(--safe-top) + 110px);
+  padding-bottom: calc(var(--footer-h) + var(--safe-bottom) + 80px);
   -webkit-font-smoothing: antialiased;
 }
 
 /* ── HEADER ─────────────────────────────────────────────────── */
 .app-header {
-  background: rgba(13,13,13,0.92);
+  background: rgba(13,13,13,0.96);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
   padding: calc(var(--safe-top) + 14px) 20px 12px;
-  position: sticky; top: 0; z-index: 90;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 90;
 }
 
 .header-top {
@@ -575,7 +576,7 @@ const CATS = [
     { id:'fries',      label:'Fries',        unit1:'Box', unit2:'Pack', decimal2:true },
     { id:'macncheese', label:'Mac & Cheese', unit1:'Box', unit2:'Pack', decimal2:true },
     { id:'biscuits',   label:'Biscuits',     unit1:'Box', unit2:'Pack', decimal2:true },
-    { id:'hashbrown',  label:'Hashbrown',    unit1:'Box', unit2:'Pack', decimal2:true },
+    { id:'hashbrown',  label:'Hashbrown',    unit1:'Box', unit2:'Pack', unit3:'Pcs', decimal2:true },
     { id:'beans',      label:'Beans',        unit1:'Box', unit2:'Pack', decimal2:true },
   ]},
   { id:'c_bakery', name:'🥬 Fresh & Bakery', label:'Fresh & Bakery', items:[
@@ -622,7 +623,7 @@ const ST = {};
 let resetPending = false;
 
 function initST(item) {
-  if (!ST[item.id]) ST[item.id] = { v1:0, v2:0, done:false };
+  if (!ST[item.id]) ST[item.id] = { v1:0, v2:0, v3:0, done:false };
 }
 CATS.forEach(c => c.items.forEach(initST));
 
@@ -634,6 +635,16 @@ function findItem(id) { return allItems().find(i => i.id === id); }
 function findCat(id) { return CATS.find(c => c.id === id); }
 function catOfItem(itemId) { return CATS.find(c => c.items.some(i => i.id === itemId)); }
 
+function getDecimal(item, key) {
+  if (key === 'v1') return !!item.decimal1;
+  if (key === 'v2') return !!item.decimal2;
+  return !!item.decimal3;
+}
+function getUnit(item, key) {
+  if (key === 'v1') return item.unit1;
+  if (key === 'v2') return item.unit2;
+  return item.unit3;
+}
 function fmt(val, dec) {
   const n = parseFloat(val) || 0;
   if (!dec) return String(Math.round(n));
@@ -675,7 +686,7 @@ function toggleDone(id) {
 // ── COUNTER CHANGE ────────────────────────────────────────────────────────────
 function step(id, key, delta) {
   const item = findItem(id);
-  const dec = key === 'v1' ? !!item.decimal1 : !!item.decimal2;
+  const dec = getDecimal(item, key);
   ST[id][key] = Math.round(Math.max(0, ST[id][key] + delta) * 10) / 10;
   const inp = document.getElementById(`inp-${id}-${key}`);
   if (inp) inp.value = fmt(ST[id][key], dec);
@@ -683,14 +694,14 @@ function step(id, key, delta) {
 
 function onType(id, key) {
   const item = findItem(id);
-  const dec = key === 'v1' ? !!item.decimal1 : !!item.decimal2;
+  const dec = getDecimal(item, key);
   const inp = document.getElementById(`inp-${id}-${key}`);
   ST[id][key] = parse(inp.value, dec);
 }
 
 function onBlur(id, key) {
   const item = findItem(id);
-  const dec = key === 'v1' ? !!item.decimal1 : !!item.decimal2;
+  const dec = getDecimal(item, key);
   const inp = document.getElementById(`inp-${id}-${key}`);
   inp.value = fmt(ST[id][key], dec);
 }
@@ -716,17 +727,17 @@ function resetAll() {
   btn.classList.remove('confirm-state');
 
   Object.keys(ST).forEach(k => {
-    ST[k] = { v1:0, v2:0, done:false };
+    ST[k] = { v1:0, v2:0, v3:0, done:false };
     const item = findItem(k);
     const card = document.getElementById(`card-${k}`);
     if (!card) return;
     card.classList.remove('counted');
     const chk = document.getElementById(`chk-${k}`);
     if (chk) { chk.classList.remove('done'); chk.textContent = ''; }
-    ['v1','v2'].forEach(key => {
+    ['v1','v2','v3'].forEach(key => {
       const inp = document.getElementById(`inp-${k}-${key}`);
       if (!inp) return;
-      const dec = key === 'v1' ? !!item?.decimal1 : !!item?.decimal2;
+      const dec = getDecimal(item, key);
       inp.value = dec ? '0.0' : '0';
       inp.disabled = false;
     });
@@ -762,9 +773,11 @@ function copyCount() {
       const s = ST[item.id];
       const v1 = fmt(s.v1, item.decimal1);
       const v2 = fmt(s.v2, item.decimal2);
-      lines.push(item.unit2
-        ? `${item.label}- ${v1}${item.unit1} + ${v2}${item.unit2}`
-        : `${item.label}- ${v1}${item.unit1}`);
+      const v3 = fmt(s.v3, item.decimal3);
+      let line = `${item.label}- ${v1}${item.unit1}`;
+      if (item.unit2) line += ` + ${v2}${item.unit2}`;
+      if (item.unit3) line += ` + ${v3}${item.unit3}`;
+      lines.push(line);
     });
     lines.push('');
   });
@@ -863,8 +876,8 @@ function confirmAdd() {
 // ── BUILD PILL ────────────────────────────────────────────────────────────────
 function buildPill(item, key) {
   const s = ST[item.id];
-  const dec = key === 'v1' ? !!item.decimal1 : !!item.decimal2;
-  const unit = key === 'v1' ? item.unit1 : item.unit2;
+  const dec = getDecimal(item, key);
+  const unit = getUnit(item, key);
   const stepVal = dec ? 0.5 : 1;
   const locked = s.done;
 
@@ -948,6 +961,7 @@ function buildCard(item) {
   counters.className = 'item-counters';
   counters.appendChild(buildPill(item, 'v1'));
   if (item.unit2) counters.appendChild(buildPill(item, 'v2'));
+  if (item.unit3) counters.appendChild(buildPill(item, 'v3'));
   card.appendChild(counters);
 
   // Remove button for custom items
